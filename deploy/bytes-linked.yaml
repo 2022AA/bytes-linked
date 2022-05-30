@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: bytes-linked
+  name: bytes-linked
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bytes-linked
+      app.kubernetes.io/instance: bytes-linked
+      app.kubernetes.io/name: bytes-linked
+  template:
+    metadata:
+      labels:
+        app: bytes-linked
+        app.kubernetes.io/instance: bytes-linked
+        app.kubernetes.io/name: bytes-linked
+    spec:
+      containers:
+        - image: docker.io/2022aa/bytes-linked:latest
+          command:
+          - /app/bytes-linked
+          imagePullPolicy: Always
+          name: bytes-linked
+          ports:
+            - containerPort: 8080
+              name: http-8080
+              protocol: TCP
+          resources:
+            limits:
+              memory: 2Gi
+            requests:
+              memory: 50Mi
+          volumeMounts:
+            - mountPath: /app/logs
+              name: store
+              subPath: bytes-linked
+            - mountPath: /app/backend/model3d/
+              name: store
+              subPath: 3dviewer/viewer/assets
+      volumes:
+        - name: store
+          persistentVolumeClaim:
+            claimName: obs-model-manager-testing
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: bytes-linked
+  name: bytes-linked
+  namespace: default
+spec:
+  ports:
+    - port: 8080
+      name: http-8080
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app.kubernetes.io/instance: bytes-linked
+    app.kubernetes.io/name: bytes-linked
+  type: ClusterIP

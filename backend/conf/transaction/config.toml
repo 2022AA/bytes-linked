@@ -1,0 +1,21 @@
+[Network]
+#type rpc or channel
+Type="channel"
+CAFile="../conf/transaction/ca.crt"
+Cert="../conf/transaction/sdk.crt"
+Key="../conf/transaction/sdk.key"
+
+[Network.Connection]
+NodeURL="http://127.0.0.1:8545"
+GroupID=1
+
+[Account]
+# only support PEM format for now
+KeyFile="../conf/transaction/xxxxxxx.pem"
+
+[Chain]
+ChainID=1
+SMCrypto=false
+
+[log]
+Path="./"

@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ipfs-server
+  name: ipfs-server
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ipfs-server
+      app.kubernetes.io/instance: ipfs-server
+      app.kubernetes.io/name: ipfs-server
+  template:
+    metadata:
+      labels:
+        app: ipfs-server
+        app.kubernetes.io/instance: ipfs-server
+        app.kubernetes.io/name: ipfs-server
+    spec:
+      containers:
+        - image: go-ipfs:latest
+          command:
+          - /root/script/start.sh
+          imagePullPolicy: Always
+          name: ipfs-server
+          ports:
+            - containerPort: 4001
+              name: http-4001
+              protocol: UDP
+            - containerPort: 8080
+              name: http-8080
+              protocol: TCP
+            - containerPort: 5001
+              name: http-5001
+              protocol: TCP
+          resources:
+            limits:
+              memory: 2Gi
+            requests:
+              memory: 50Mi
+          volumeMounts:
+            - mountPath: /data/ipfs
+              name: ipfs-store
+              subPath: ipfs
+            - mountPath: /root/script
+              name: ipfs-config-script
+      volumes:
+        - name: ipfs-store
+          persistentVolumeClaim:
+            claimName: obs-model-manager-testing
+        - name: ipfs-config-script
+          configMap:
+            defaultMode: 0720
+            name: script-up
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ipfs-server
+  name: ipfs-server
+  namespace: default
+spec:
+  ports:
+    - port: 4001
+      name: http-4001
+      protocol: UDP
+      targetPort: 4001
+    - port: 8080
+      name: http-8080
+      protocol: TCP
+      targetPort: 8080
+    - port: 5001
+      name: http-5001
+      protocol: TCP
+      targetPort: 5001
+  selector:
+    app.kubernetes.io/instance: ipfs-server
+    app.kubernetes.io/name: ipfs-server
+  type: ClusterIP
+
+---
+apiVersion: v1
+data:
+  start.sh: |-
+    #!/bin/sh
+    ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '["http://$MY_POD_IP:5001","http://127.0.0.1:5001", "http://$MY_POD_IP:3000", "https://webui.ipfs.io"]'
+    ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '["PUT", "POST"]'
+    #/sbin/tini -s -- /usr/local/bin/start_ipfs
+    /usr/local/bin/start_ipfs daemon --agent-version-suffix=docker
+kind: ConfigMap
+metadata:
+  name: script-up
+  namespace: default
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: istio-ingressgateway-ipfs
+  namespace: default
+spec:
+  gateways:
+  - default/istio-ingressgateway-web
+  hosts:
+  - ipfs.2022aa.external.ClarkChu07.com
+  - ipfs.2022aa.tensorbytes.com
+  http:
+  - route:
+    - destination:
+        host: ipfs-server.default.svc.cluster.local
+        port:
+          number: 5001
