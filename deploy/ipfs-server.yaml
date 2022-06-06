@@ -105,8 +105,7 @@ spec:
   gateways:
   - default/istio-ingressgateway-web
   hosts:
-  - ipfs.2022aa.external.ClarkChu07.com
-  - ipfs.2022aa.tensorbytes.com
+  - xxxx.com
   http:
   - route:
     - destination:
